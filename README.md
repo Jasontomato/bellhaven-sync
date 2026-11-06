@@ -62,18 +62,4 @@ enable the CRM steps). `deploy/crontab` is the equivalent cron entry.
 | `bellhaven_sync/app.py`, `views.py` | FastAPI review app |
 | `tests/` | End-to-end tests with an in-memory CRM loaded from real exported data |
 
-## Demo script (about 2 minutes)
 
-1. Queue: “Last run checked 35 locations and 121 accounts; 16 need nothing, 29 need a decision.”
-2. Open **Bellhaven of Tiffin: change of ownership**. Point at the billing check ($84,000
-   revenue, $12,400 AR), explain the SOP, approve. Show the activity: create, then link.
-3. Open the CRM browser: the old Tiffin account is unchanged except CHOW Current Account;
-   the new account sits under Bellhaven.
-4. Open **Bellhaven at Union Square: new account**. Show why the Juniper account in the same
-   city is not a match (different street, phone, administrator).
-5. Open **Bellhaven of Ashtabula: update street**. The current value is a PO Box, which may be
-   an intentional billing address. Reject with a comment.
-6. Click **Run pipeline now**: 0 new findings, the rejected item stays rejected.
-
-After recording: reopen Ashtabula (reason: every other account stores the street address in
-billing_street) and approve it, then approve everything else.
