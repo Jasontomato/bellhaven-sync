@@ -1,0 +1,4 @@
+# Alternative to GitHub Actions: run on a small always-on host.
+# flock prevents overlapping runs; the pipeline only generates proposals, it never writes to the CRM.
+# m  h  dom mon dow  command
+  0  6  *   *   *    cd /opt/bellhaven-sync && flock -n /tmp/bellhaven-sync.lock env $(cat .env | xargs) .venv/bin/python -m bellhaven_sync.pipeline run >> logs/sync.log 2>&1

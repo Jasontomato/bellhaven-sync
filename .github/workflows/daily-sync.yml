@@ -1,0 +1,71 @@
+# Daily Bellhaven website -> CRM reconciliation.
+#
+# The job only GENERATES proposals. It never writes to the CRM: writes happen
+# only in the review app, after a person approves them.
+#
+# State (proposals, decisions, audit log) lives in state/bellhaven.db. It is
+# persisted between runs with the Actions cache, never committed, so the repo
+# stays free of CRM data. Every run restores the newest cache and saves a new
+# one. In production this would be a shared database (for example Postgres)
+# that the scheduled job and the review app both use.
+#
+# Without the BH_TOKEN repository secret, the job still runs the offline tests
+# and skips the steps that need the CRM.
+
+name: bellhaven-daily-sync
+
+on:
+  schedule:
+    - cron: "0 11 * * *"     # 11:00 UTC every day (06:00 / 07:00 US Eastern), before reviewers start
+  workflow_dispatch: {}       # allow a manual run from the Actions tab
+
+concurrency:
+  group: bellhaven-sync       # never run two pipelines against the same state at once
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BH_TOKEN: ${{ secrets.BH_TOKEN }}
+      BH_DB_PATH: state/bellhaven.db
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Tests (offline, against fixtures)
+        run: python -m unittest -v
+
+      - name: Restore state from the previous run
+        if: ${{ env.BH_TOKEN != '' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: bellhaven-state-${{ github.run_id }}
+          restore-keys: bellhaven-state-
+
+      - name: Generate proposals
+        if: ${{ env.BH_TOKEN != '' }}
+        run: python -m bellhaven_sync.pipeline run
+
+      - name: Show queue status
+        if: ${{ env.BH_TOKEN != '' }}
+        run: python -m bellhaven_sync.pipeline status
+
+      - name: Save state for the next run
+        if: ${{ env.BH_TOKEN != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: bellhaven-state-${{ github.run_id }}

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+logs/
+# Local decision state: kept out of git (the daily workflow persists its own copy in the Actions cache).
+state/*.db
